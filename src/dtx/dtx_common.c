@@ -280,6 +280,14 @@ dtx_handle_init(struct dtx_id *dti, daos_handle_t coh, daos_epoch_t epoch,
 	dth->dth_dti_cos_count = dti_cos_cnt;
 	dth->dth_ent = NULL;
 	dth->dth_flags = leader ? DTE_LEADER : 0;
+
+	/* Set 'DTE_BLOCK' flag for EC object modification or
+	 * distributed transaction.
+	 */
+	if (daos_oclass_is_ec(leader_oid->id_pub, NULL) ||
+	    (mbs != NULL && mbs->dm_grp_cnt > 1))
+		dth->dth_flags |= DTE_BLOCK;
+
 	dth->dth_modification_cnt = sub_modification_cnt;
 
 	dth->dth_op_seq = 0;
@@ -512,10 +520,10 @@ init:
 			     dti_cos, dti_cos_cnt, mbs, true,
 			     tgt_cnt == 0 ? true : false, dth);
 
-	D_DEBUG(DB_IO, "Start DTX "DF_DTI" sub_reqs %d, ver %u, "
-		"dti_cos_cnt %d: "DF_RC"\n",
+	D_DEBUG(DB_IO, "Start DTX "DF_DTI" sub_reqs %d, ver %u, leader "DF_UOID
+		", dti_cos_cnt %d: "DF_RC"\n",
 		DP_DTI(dti), sub_modification_cnt,
-		dth->dth_ver, dti_cos_cnt, DP_RC(rc));
+		dth->dth_ver, DP_UOID(*leader_oid), dti_cos_cnt, DP_RC(rc));
 
 	if (rc != 0)
 		D_FREE(dlh->dlh_subs);
